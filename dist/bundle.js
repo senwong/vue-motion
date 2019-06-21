@@ -15,11 +15,17 @@ var VueMotion = (function (exports) {
           },
           stiffness: {
               type: Number,
-              "default": 100
+              "default": 100,
+              validator: function (value) {
+                  return value > 0;
+              }
           },
           damping: {
               type: Number,
-              "default": 20
+              "default": 20,
+              validator: function (value) {
+                  return value > 0;
+              }
           },
           enable: {
               type: Boolean,
