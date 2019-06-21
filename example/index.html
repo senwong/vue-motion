@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <!-- vue -->
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="../dist/bundle.js"></script>
+
+  <title>Document</title>
+</head>
+
+<body>
+  <div class="app"></div>
+</body>
+<style>
+  .container {
+    height: 10vw;
+    width: 100vw;
+    background-color: lightsteelblue;
+    border-radius: 0.5em;
+    position: relative
+  }
+
+  .box {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 10vw;
+    background-color: pink;
+    border-radius: 0.5em
+  }
+</style>
+<script>
+  Vue.use(VueMotion.default);
+  new Vue({
+    template: `
+      <div>
+        <div class="container">
+          <Motion :styles="styles" :stiffness="Number(stiffness)" :damping="Number(damping)" :enable="enable">
+            <template v-slot="{ styles }">
+              <div
+                class="box a"
+                :style="{
+                  width: styles.width + 'px',
+                  transform: 'translateX(' + styles.x + 'px)',
+                }"
+              >
+                
+              </div>
+            </template>
+          </Motion>
+        </div>
+        <button @click="handleClick" >toggle</button>
+        <button @click="() => enable=false" >stop</button>
+        <label>
+          <input type="range" v-model="stiffness" min="0" max="200"/>{{ stiffness }}
+        </label><br>
+        <label>
+          <input type="range" v-model="damping" min="0" max="200"/>{{ damping }}
+        </label>
+        <p>
+          {{ damping / (Math.sqrt(stiffness) * 2) }}
+        </p>
+      </div>
+    `,
+    data() {
+      return {
+        stiffness: 170,
+        damping: 26,
+        styles: {
+          width: 100,
+          x: 0
+        },
+        enable: true,
+      }
+    },
+    methods: {
+      handleClick() {
+        // this.styles.width += 100;
+
+        if (this.styles.x == 500) {
+          this.styles.x = 0;
+        } else {
+          this.styles.x = 500
+        }
+        // this.styles = {
+        //   width: this.styles.width += 100,
+        //   x: this.styles.x += 100,
+        // };
+
+      }
+    },
+  }).$mount(".app");
+</script>
+
+</html>
