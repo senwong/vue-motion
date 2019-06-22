@@ -1,13 +1,75 @@
 var VueMotion = (function (exports) {
   'use strict';
 
-  var VueMotion = { install: null };
+  var msPerFrame = 1 / 60;
+  var precision = 0.01;
+  function oneFrameDistance(fromValue, toValue, velocity, options, frameCount) {
+      if (frameCount === void 0) { frameCount = 1; }
+      if (Number.isNaN(fromValue) ||
+          Number.isNaN(toValue) ||
+          Number.isNaN(velocity)) {
+          console.error("onFrameDistance(" + fromValue + ", " + toValue + ", " + velocity + ")");
+      }
+      console.log({ stiffness: options.stiffness, damping: options.damping });
+      var stiffness = options.stiffness, damping = options.damping;
+      var x = -Math.abs(toValue - fromValue);
+      var forceDamper = -damping * velocity;
+      var forceSpring = -stiffness * x;
+      var acceleration = (forceSpring + forceDamper) / 1000;
+      velocity += acceleration * frameCount;
+      x += velocity;
+      var ret = toValue > fromValue ? toValue + x : toValue - x;
+      ret = Math.round(ret * 1000) / 1000;
+      return { value: ret, velocity: velocity, acceleration: acceleration };
+  }
+  function createAnimate(fromValue, cb, options) {
+      var oldRafId;
+      var currentValue = fromValue;
+      function animateTo(toValue) {
+          if (currentValue === toValue) {
+              return;
+          }
+          if (oldRafId) {
+              window.cancelAnimationFrame(oldRafId);
+          }
+          var velocity = 0;
+          var accTime = 0, accFrameCount = 0;
+          var lastTime;
+          function step() {
+              var now = performance.now();
+              var msFrame = (now - lastTime) / 1000;
+              lastTime = now;
+              var frameCount = Math.floor((accTime + msFrame) / msPerFrame);
+              accFrameCount += frameCount;
+              accTime += msFrame - frameCount * msPerFrame;
+              var _a = oneFrameDistance(currentValue, toValue, velocity, options, frameCount), newValue = _a.value, newVelocity = _a.velocity, acceleration = _a.acceleration;
+              currentValue = newValue;
+              velocity = newVelocity;
+              if (accFrameCount > 0 &&
+                  Math.abs(acceleration) < precision &&
+                  Math.abs(velocity) < precision) {
+                  cb(toValue);
+                  return;
+              }
+              cb(currentValue);
+              oldRafId = window.requestAnimationFrame(function () {
+                  step();
+              });
+          }
+          lastTime = performance.now();
+          step();
+      }
+      return animateTo;
+  }
+
   var Motion = {
-      template: "\n    <div>\n      <slot v-bind:styles=\"animatedStyles\"></slot>\n    </div>\n  ",
+      template: "\n    <div>\n      <slot v-bind:styles=\"interpolatingStyles\"></slot>\n    </div>\n  ",
       data: function () {
-          return {
-              animatedStyles: {}
+          var data = {
+              interpolatingStyles: {},
+              options: { stiffness: null, damping: null }
           };
+          return data;
       },
       props: {
           styles: {
@@ -22,10 +84,60 @@ var VueMotion = (function (exports) {
           },
           damping: {
               type: Number,
-              "default": 20,
+              "default": 370,
               validator: function (value) {
                   return value > 0;
               }
+          }
+      },
+      watch: {
+          stiffness: function (newVal) {
+              this.options.stiffness = newVal;
+          },
+          damping: function (newVal) {
+              this.options.damping = newVal;
+          }
+      },
+      created: function () {
+          var _this = this;
+          this.initialOptions();
+          this.interpolatingStyles = Object.assign({}, this.styles);
+          Object.keys(this.styles).map(function (property) {
+              var initialStyleValue = _this.styles[property];
+              var animateTo = createAnimate(initialStyleValue, function (val) { return (_this.interpolatingStyles[property] = val); }, _this.options);
+              _this.$watch("styles." + property, function (newVal) { return animateTo(newVal); });
+          });
+      },
+      methods: {
+          initialOptions: function () {
+              this.options.stiffness = this.stiffness;
+              this.options.damping = this.damping;
+          }
+      }
+  };
+
+  var StaggeredMotion = {
+      template: "\n    <div>\n      <slot v-bind:styles=\"interpolatingStyles\"></slot>\n    </div>\n  ",
+      data: function () {
+          var data = {
+              interpolatingStyles: [],
+              options: { stiffness: null, damping: null }
+          };
+          return data;
+      },
+      props: {
+          styles: {
+              required: true
+          },
+          stiffness: {
+              type: Number,
+              "default": 20,
+              validator: function (value) { return value > 0; }
+          },
+          damping: {
+              type: Number,
+              "default": 370,
+              validator: function (value) { return value > 0; }
           },
           enable: {
               type: Boolean,
@@ -33,149 +145,77 @@ var VueMotion = (function (exports) {
           }
       },
       created: function () {
-          var _this = this;
-          this.animatedStyles = Object.assign({}, this.styles);
-          Object.keys(this.styles).map(function (property) {
-              _this.$watch("styles." + property, function (newVal, oldVal) {
-                  console.log("watch " + property, { newVal: newVal, oldVal: oldVal });
-                  this.animateValue(oldVal, newVal, property);
-              });
-          });
+          this.initial();
+          this.initialOptions();
+          this.watchLeadingStyle();
+          this.watchInterpolatingStyles();
       },
       watch: {
-          styles: function (val, oldVal) {
-              console.log("watch styles ", { val: val, oldVal: oldVal });
+          stiffness: function (newVal) {
+              this.options.stiffness = newVal;
+          },
+          damping: function (newVal) {
+              this.options.damping = newVal;
           }
       },
       methods: {
-          animateValues: function (fromStyles, toStyles) {
-              var propertys = Object.keys(toStyles);
-              if (propertys.every(function (p) { return fromStyles[p] === toStyles[p]; })) {
-                  return;
-              }
-              var k = 10, m = 1, msPerFrame = 1 / 60;
-              var propertyStyleInfo = propertys.reduce(function (styleInfo, p) {
-                  var toValue = toStyles[p], fromValue = fromStyles[p];
-                  styleInfo[p] = {
-                      middleValue: Math.abs(toValue - fromValue) / 2,
-                      accValue: 0,
-                      x: undefined,
-                      acceleration: undefined,
-                      velocity: 0,
-                      lastVelocity: 0,
-                      direction: toValue - fromValue > 0 ? 1 : -1
-                  };
-                  return styleInfo;
-              }, {});
-              var lastTime, accTime = 0;
-              var that = this;
-              function step() {
-                  var now = performance.now();
-                  var msFrame = (now - lastTime) / 1000;
-                  lastTime = now;
-                  var frameCount = Math.floor((accTime + msFrame) / msPerFrame);
-                  var timeToMove = frameCount * msPerFrame;
-                  accTime += msFrame - timeToMove;
-                  var isFinished = false;
-                  for (var property in propertyStyleInfo) {
-                      if (!propertyStyleInfo.hasOwnProperty(property)) {
-                          return;
-                      }
-                      var styleInfo = propertyStyleInfo[property];
-                      styleInfo.x = styleInfo.accValue - styleInfo.middleValue;
-                      styleInfo.acceleration = (-k * styleInfo.x) / m;
-                      styleInfo.lastVelocity = styleInfo.velocity;
-                      styleInfo.velocity += styleInfo.acceleration * timeToMove;
-                      styleInfo.acceleration += styleInfo.velocity * timeToMove;
-                      if (styleInfo.acceleration > styleInfo.middleValue &&
-                          Math.abs(styleInfo.velocity) <=
-                              Math.abs(styleInfo.acceleration * timeToMove)) {
-                          isFinished = true;
-                      }
-                  }
-                  if (!isFinished) {
-                      window.requestAnimationFrame(function () {
-                          step();
-                      });
-                  }
-                  else {
-                      for (var property in propertyStyleInfo) {
-                          if (!propertyStyleInfo.hasOwnProperty(property)) {
-                              return;
-                          }
-                          var styleInfo = propertyStyleInfo[property];
-                          styleInfo.acceleration = Math.abs(toStyles[property] - fromStyles[property]);
-                      }
-                  }
-                  for (var property in propertyStyleInfo) {
-                      if (!propertyStyleInfo.hasOwnProperty(property)) {
-                          return;
-                      }
-                      var styleInfo = propertyStyleInfo[property];
-                      var acc = styleInfo.acceleration;
-                      var fromValue = fromStyles[property];
-                      that.animatedStyles[property] =
-                          styleInfo.direction > 0 ? acc + fromValue : fromValue - acc;
-                  }
-              }
-              window.requestAnimationFrame(function () {
-                  lastTime = performance.now();
-                  window.requestAnimationFrame(function () {
-                      step();
-                  });
+          initial: function () {
+              this.interpolatingStyles = this.styles.map(function (s) {
+                  return Object.assign({}, s);
               });
           },
-          animateValue: function (fromValue, toValue, property) {
-              if (fromValue === toValue) {
-                  return;
-              }
-              var msPerFrame = 1 / 60;
-              var x = -Math.abs(toValue - fromValue);
-              var a;
-              var v = 0;
-              var accTime = 0, accFrameCount = 0;
-              var lastTime;
-              var that = this;
-              function step() {
-                  if (!that.enable) {
+          initialOptions: function () {
+              this.options.stiffness = this.stiffness;
+              this.options.damping = this.damping;
+          },
+          watchLeadingStyle: function () {
+              var _this = this;
+              Object.keys(this.styles[0]).map(function (prop) {
+                  var initialValue = _this.styles[0][prop];
+                  var interpolatedValueCallback = function (val) {
+                      return (_this.interpolatingStyles[0][prop] = val);
+                  };
+                  var animatedTo = createAnimate(initialValue, interpolatedValueCallback, _this.options);
+                  _this.$watch(function () { return _this.styles[0][prop]; }, function (newVal) { return animatedTo(newVal); });
+              });
+          },
+          watchInterpolatingStyles: function () {
+              var _this = this;
+              this.interpolatingStyles.map(function (style, idx) {
+                  if (idx >= _this.interpolatingStyles.length - 1) {
                       return;
                   }
-                  var now = performance.now();
-                  var msFrame = (now - lastTime) / 1000;
-                  lastTime = now;
-                  var frameCount = Math.floor((accTime + msFrame) / msPerFrame);
-                  accFrameCount += frameCount;
-                  accTime += msFrame - frameCount * msPerFrame;
-                  var fd = -that.damping * v;
-                  var fs = -that.stiffness * x;
-                  a = (fs + fd) / 1000;
-                  v += a * frameCount;
-                  var deltaValue = Math.round(v * 1000) / 1000;
-                  x += deltaValue;
-                  if (accFrameCount > 0 && Math.abs(a) < 0.01 && Math.abs(v) < 0.01) {
-                      console.log("end animation: ", { a: a, v: v });
-                      return;
-                  }
-                  window.requestAnimationFrame(function () {
-                      step();
-                  });
-                  that.animatedStyles[property] =
-                      toValue > fromValue ? toValue + x : toValue - x;
-              }
-              window.requestAnimationFrame(function () {
-                  lastTime = performance.now();
-                  window.requestAnimationFrame(function () {
-                      step();
+                  Object.keys(style).map(function (prop) {
+                      var nextIdx = idx + 1;
+                      var currentValue = _this.interpolatingStyles[nextIdx][prop];
+                      var currentVelocity = 0;
+                      _this.$watch(function () { return _this.interpolatingStyles[idx][prop]; }, function (newVal) {
+                          if (newVal === _this.styles[0][prop]) {
+                              var interpolatedValueCallback = function (val) {
+                                  return (_this.interpolatingStyles[nextIdx][prop] = val);
+                              };
+                              var animatedTo = createAnimate(_this.interpolatingStyles[nextIdx][prop], interpolatedValueCallback, _this.options);
+                              animatedTo(newVal);
+                          }
+                          else {
+                              var ret = oneFrameDistance(currentValue, newVal, currentVelocity, _this.options);
+                              currentValue = ret.value;
+                              currentVelocity = ret.velocity;
+                              _this.interpolatingStyles[nextIdx][prop] = currentValue;
+                          }
+                      });
                   });
               });
           }
       }
   };
+
+  var VueMotion = { install: null };
   VueMotion.install = function (Vue, opttions) {
       Vue.component("Motion", Motion);
+      Vue.component("StaggeredMotion", StaggeredMotion);
   };
 
-  exports.Motion = Motion;
   exports.default = VueMotion;
 
   return exports;

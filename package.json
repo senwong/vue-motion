@@ -19,8 +19,14 @@
   "devDependencies": {
     "browserify": "^16.2.3",
     "rollup": "^1.15.6",
+    "rollup-plugin-node-resolve": "^5.0.3",
     "rollup-plugin-typescript": "^1.0.1",
     "tslib": "^1.10.0",
     "typescript": "^3.5.2"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.134",
+    "lodash": "^4.17.11",
+    "rollup-plugin-commonjs": "^10.0.0"
   }
 }
