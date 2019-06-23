@@ -6,8 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <!-- vue -->
-  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-  <script src="../dist/bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <!-- vue-motion -->
+  <script src="./vue-motion.js"></script>
 
   <title>Document</title>
 </head>
@@ -53,12 +54,12 @@
   }
 </style>
 <script>
-  Vue.use(VueMotion.default);
+  Vue.use(VueMotion);
   new Vue({
     template: `
       <div>
         <div class="container">
-          <Motion :styles="styles" :stiffness="Number(stiffness)" :damping="Number(damping)" :enable="enable">
+          <Motion :styles="styles" :stiffness="Number(stiffness)" :damping="Number(damping)">
             <template v-slot="{ styles }">
               <div
                 class="box a"
@@ -67,7 +68,6 @@
                   transform: 'translateX(' + styles.x + 'px)',
                 }"
               >
-                
               </div>
             </template>
           </Motion>

@@ -1,6 +1,3 @@
-export interface PluginType {
-  install: (Vue: any, options: any) => void;
-}
 export interface StyleType {
   [property: string]: number;
 }
@@ -16,7 +13,6 @@ export interface StyleInfoType {
 export interface PropertyStyleInfoType {
   [property: string]: StyleInfoType;
 }
-export const VueMotion: PluginType = { install: null };
 
 // staggeredMotion const styles = [{x: 0}, {x: 0}, {x: 0}];
 // styles[0].x = 500, styles[1].x = stepValueFrom0, styles[2].x = stepValueFrom1;

@@ -1,5 +1,8 @@
-var VueMotion = (function (exports) {
-  'use strict';
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+  typeof define === 'function' && define.amd ? define(factory) :
+  (global = global || self, global.VueMotion = factory());
+}(this, function () { 'use strict';
 
   var msPerFrame = 1 / 60;
   var precision = 0.01;
@@ -210,14 +213,15 @@ var VueMotion = (function (exports) {
       }
   };
 
-  var VueMotion = { install: null };
-  VueMotion.install = function (Vue, opttions) {
-      Vue.component("Motion", Motion);
-      Vue.component("StaggeredMotion", StaggeredMotion);
+  var VueMotion = {
+      install: function (Vue, options) {
+          Vue.component("Motion", Motion);
+          Vue.component("StaggeredMotion", StaggeredMotion);
+      },
+      Motion: Motion,
+      StaggeredMotion: StaggeredMotion
   };
 
-  exports.default = VueMotion;
+  return VueMotion;
 
-  return exports;
-
-}({}));
+}));
