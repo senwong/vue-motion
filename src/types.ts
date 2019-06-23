@@ -34,10 +34,14 @@ export interface PropertyStyleInfoType {
 // watch(styles[0].x)
 export interface StaggeredMotionData {
   interpolatingStyles: StyleType[];
-  options: Options;
 }
 
 export interface Options {
   stiffness: number;
   damping: number;
+  mass: number;
+}
+
+export function intanceofOptions(object: any): object is Options {
+  return "stiffness" in object && "damping" in object && "mass" in object;
 }

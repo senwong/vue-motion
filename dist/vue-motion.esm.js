@@ -1,5 +1,20 @@
+function intanceofOptions(object) {
+    return "stiffness" in object && "damping" in object && "mass" in object;
+}
+
+var noWobble = { stiffness: 10, damping: 40, mass: 1 };
+var gentle = { stiffness: 7, damping: 20, mass: 1 };
+var wobbly = { stiffness: 5, damping: 13, mass: 1 };
+var stiff = { stiffness: 5, damping: 30, mass: 1 };
+var presets = {
+    noWobble: noWobble,
+    gentle: gentle,
+    wobbly: wobbly,
+    stiff: stiff
+};
+
 var msPerFrame = 1000 / 60;
-var precision = 0.01;
+var precision = 0.1;
 function oneFrameDistance(fromValue, toValue, velocity, options, frameCount) {
     if (frameCount === void 0) { frameCount = 1; }
     if (Number.isNaN(fromValue) ||
@@ -7,27 +22,40 @@ function oneFrameDistance(fromValue, toValue, velocity, options, frameCount) {
         Number.isNaN(velocity)) {
         console.error("onFrameDistance(" + fromValue + ", " + toValue + ", " + velocity + ")");
     }
-    var stiffness = options.stiffness, damping = options.damping;
-    var x = -Math.abs(toValue - fromValue);
+    var stiffness = options.stiffness, damping = options.damping, mass = options.mass;
+    var x = -(toValue - fromValue);
     var forceDamper = -damping * velocity;
     var forceSpring = -stiffness * x;
-    var acceleration = (forceSpring + forceDamper) / 1000;
-    velocity += acceleration * frameCount;
+    var acceleration = (forceSpring + forceDamper) / mass;
+    velocity += acceleration * ((frameCount * msPerFrame) / 1000);
     x += velocity;
-    var ret = toValue > fromValue ? toValue + x : toValue - x;
-    ret = Math.round(ret * 1000) / 1000;
+    var ret = toValue + x;
     return { value: ret, velocity: velocity };
 }
 function createAnimate(fromValue, cb, options) {
+    if (typeof options === "string") {
+        if (options in presets) {
+            options = presets[options];
+        }
+        else {
+            console.error("unrecognized options" + options);
+            options = presets.noWobble;
+        }
+    }
+    else if (typeof options !== "object" || !intanceofOptions(options)) {
+        console.error("unrecognized options" + options);
+        options = presets.noWobble;
+    }
     var oldRafId;
     var currentValue = fromValue;
     var toValue = fromValue;
     var velocity = 0;
     var accTime = 0, lastTimestamp;
     function step(timestamp) {
-        if (Math.abs(toValue - currentValue) < precision) {
+        if (Math.abs(toValue - currentValue) <= precision) {
             cb(toValue);
             fromValue = toValue;
+            velocity = 0;
             return;
         }
         var msFrame;
@@ -54,6 +82,7 @@ function createAnimate(fromValue, cb, options) {
         if (oldRafId) {
             return;
         }
+        lastTimestamp = null;
         oldRafId = window.requestAnimationFrame(step);
     }
     return animateTo;
@@ -63,8 +92,7 @@ var Motion = {
     template: "\n    <div>\n      <slot v-bind:styles=\"interpolatingStyles\"></slot>\n    </div>\n  ",
     data: function () {
         var data = {
-            interpolatingStyles: {},
-            options: { stiffness: null, damping: null }
+            interpolatingStyles: {}
         };
         return data;
     },
@@ -72,44 +100,18 @@ var Motion = {
         styles: {
             required: true
         },
-        stiffness: {
-            type: Number,
-            "default": 100,
-            validator: function (value) {
-                return value > 0;
-            }
-        },
-        damping: {
-            type: Number,
-            "default": 370,
-            validator: function (value) {
-                return value > 0;
-            }
-        }
-    },
-    watch: {
-        stiffness: function (newVal) {
-            this.options.stiffness = newVal;
-        },
-        damping: function (newVal) {
-            this.options.damping = newVal;
+        options: {
+            "default": function () { return noWobble; }
         }
     },
     created: function () {
         var _this = this;
-        this.initialOptions();
         this.interpolatingStyles = Object.assign({}, this.styles);
         Object.keys(this.styles).map(function (property) {
             var initialStyleValue = _this.styles[property];
             var animateTo = createAnimate(initialStyleValue, function (val) { return (_this.interpolatingStyles[property] = val); }, _this.options);
             _this.$watch("styles." + property, function (newVal) { return animateTo(newVal); });
         });
-    },
-    methods: {
-        initialOptions: function () {
-            this.options.stiffness = this.stiffness;
-            this.options.damping = this.damping;
-        }
     }
 };
 
@@ -117,8 +119,7 @@ var StaggeredMotion = {
     template: "\n    <div>\n      <slot v-bind:styles=\"interpolatingStyles\"></slot>\n    </div>\n  ",
     data: function () {
         var data = {
-            interpolatingStyles: [],
-            options: { stiffness: null, damping: null }
+            interpolatingStyles: []
         };
         return data;
     },
@@ -126,44 +127,21 @@ var StaggeredMotion = {
         styles: {
             required: true
         },
-        stiffness: {
-            type: Number,
-            "default": 20,
-            validator: function (value) { return value > 0; }
-        },
-        damping: {
-            type: Number,
-            "default": 370,
-            validator: function (value) { return value > 0; }
-        },
-        enable: {
-            type: Boolean,
-            "default": true
+        options: {
+            "default": function () { return noWobble; }
         }
     },
     created: function () {
         this.initial();
-        this.initialOptions();
         this.watchLeadingStyle();
         this.watchInterpolatingStyles();
     },
-    watch: {
-        stiffness: function (newVal) {
-            this.options.stiffness = newVal;
-        },
-        damping: function (newVal) {
-            this.options.damping = newVal;
-        }
-    },
+    watch: {},
     methods: {
         initial: function () {
             this.interpolatingStyles = this.styles.map(function (s) {
                 return Object.assign({}, s);
             });
-        },
-        initialOptions: function () {
-            this.options.stiffness = this.stiffness;
-            this.options.damping = this.damping;
         },
         watchLeadingStyle: function () {
             var _this = this;

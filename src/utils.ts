@@ -1,7 +1,11 @@
-const msPerFrame = 1000 / 60;
-const precision = 0.01;
-import { Options } from "./types";
+import { Options, intanceofOptions } from "./types";
+import presets from "./presets";
 
+const msPerFrame = 1000 / 60;
+const precision = 0.1;
+function toFix(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
 export function oneFrameDistance(
   fromValue: number,
   toValue: number,
@@ -16,17 +20,16 @@ export function oneFrameDistance(
   ) {
     console.error(`onFrameDistance(${fromValue}, ${toValue}, ${velocity})`);
   }
-  const { stiffness, damping } = options;
+  const { stiffness, damping, mass } = options;
+  // damping: x Newton * meter/second velocity: x meter/second
+  let x = -(toValue - fromValue); // meter
+  const forceDamper = -damping * velocity; // N move right v > 0; move left v < 0. damping = 2 * Math.sqrt(stifness)
+  const forceSpring = -stiffness * x; // stiffness: N/m, x meter
+  const acceleration = (forceSpring + forceDamper) / mass; // m/s^2
 
-  let x = -Math.abs(toValue - fromValue);
-  const forceDamper = -damping * velocity; // move right v > 0; move left v < 0. damping = 2 * Math.sqrt(stifness)
-  const forceSpring = -stiffness * x;
-  let acceleration = (forceSpring + forceDamper) / 1000;
-  velocity += acceleration * frameCount;
+  velocity += acceleration * ((frameCount * msPerFrame) / 1000); // m/s
   x += velocity;
-  let ret = toValue > fromValue ? toValue + x : toValue - x;
-  ret = Math.round(ret * 1000) / 1000;
-
+  let ret = toValue + x;
   return { value: ret, velocity };
 }
 
@@ -35,6 +38,18 @@ export function createAnimate(
   cb: (val: number) => void,
   options: Options
 ) {
+  if (typeof options === "string") {
+    if (options in presets) {
+      options = presets[options];
+    } else {
+      console.error("unrecognized options" + options);
+      options = presets.noWobble;
+    }
+  } else if (typeof options !== "object" || !intanceofOptions(options)) {
+    console.error("unrecognized options" + options);
+    options = presets.noWobble;
+  }
+
   let oldRafId: number;
   let currentValue = fromValue;
   let toValue = fromValue;
@@ -43,9 +58,10 @@ export function createAnimate(
     lastTimestamp: number;
   function step(timestamp: number) {
     // animation end
-    if (Math.abs(toValue - currentValue) < precision) {
+    if (Math.abs(toValue - currentValue) <= precision) {
       cb(toValue);
       fromValue = toValue;
+      velocity = 0;
       return;
     }
     // get time delta to last frame
@@ -83,6 +99,7 @@ export function createAnimate(
     if (oldRafId) {
       return;
     }
+    lastTimestamp = null;
     oldRafId = window.requestAnimationFrame(step);
   }
   return animateTo;

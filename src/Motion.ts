@@ -1,7 +1,7 @@
 import { createAnimate } from "./utils";
 import { Options, StyleType } from "./types";
+import { noWobble } from "./presets";
 interface DataType {
-  options: Options;
   interpolatingStyles: StyleType;
 }
 const Motion = {
@@ -12,8 +12,7 @@ const Motion = {
   `,
   data() {
     const data: DataType = {
-      interpolatingStyles: {},
-      options: { stiffness: null, damping: null }
+      interpolatingStyles: {}
     };
     return data;
   },
@@ -22,31 +21,11 @@ const Motion = {
     styles: {
       required: true
     },
-    stiffness: {
-      type: Number,
-      default: 100,
-      validator: function(value: number) {
-        return value > 0;
-      }
-    },
-    damping: {
-      type: Number,
-      default: 370,
-      validator: function(value: number) {
-        return value > 0;
-      }
-    }
-  },
-  watch: {
-    stiffness(newVal: number) {
-      this.options.stiffness = newVal;
-    },
-    damping(newVal: number) {
-      this.options.damping = newVal;
+    options: {
+      default: () => noWobble
     }
   },
   created() {
-    this.initialOptions();
     // initial interpolatingStyles
     this.interpolatingStyles = Object.assign({}, this.styles);
     // watch styles from parent component for changes
@@ -60,12 +39,6 @@ const Motion = {
       );
       this.$watch("styles." + property, (newVal: number) => animateTo(newVal));
     });
-  },
-  methods: {
-    initialOptions() {
-      this.options.stiffness = this.stiffness;
-      this.options.damping = this.damping;
-    }
   }
 };
 export default Motion;

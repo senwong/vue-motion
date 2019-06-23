@@ -52,7 +52,7 @@
   new Vue({
     template: `
       <div class="staggered-motion">
-        <StaggeredMotion :styles="staggeredStyles" :stiffness="Number(stiffness)" :damping="Number(damping)">
+        <StaggeredMotion :styles="staggeredStyles" >
             <template v-slot="{ styles }">
               <div
                 class="staggered-motion__item"
@@ -69,8 +69,8 @@
     `,
     data() {
       return {
-        stiffness: 46,
-        damping: 370,
+        stiffness: 10,
+        damping: 25,
         staggeredStyles: [
           { x: 0, y: 0 },
           { x: 0, y: 0 },
@@ -82,6 +82,7 @@
       }
     },
     created() {
+      this.staggeredStyles = new Array(5).fill(true).map(_ => ({ x: 0, y: 0 }))
       document.body.addEventListener('mousemove', this.handleMousemove)
     },
     beforeDestroy() {
@@ -92,6 +93,11 @@
         this.staggeredStyles[0].x = e.clientX - 30;
         this.staggeredStyles[0].y = e.clientY - 30;
       },
+      randomColor(n) {
+        const getColor = () => Math.floor(Math.random() * 256);
+
+        return `rgb(${getColor()}, ${getColor()}, ${getColor()})`
+      }
     },
   }).$mount(".app");
 </script>

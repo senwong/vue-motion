@@ -1,5 +1,6 @@
 import { StaggeredMotionData, StyleType } from "./types";
 import { createAnimate, oneFrameDistance } from "./utils";
+import { noWobble } from "./presets";
 
 const StaggeredMotion = {
   template: `
@@ -9,8 +10,7 @@ const StaggeredMotion = {
   `,
   data() {
     const data: StaggeredMotionData = {
-      interpolatingStyles: [],
-      options: { stiffness: null, damping: null }
+      interpolatingStyles: []
     };
     return data;
   },
@@ -19,44 +19,21 @@ const StaggeredMotion = {
     styles: {
       required: true
     },
-    stiffness: {
-      type: Number,
-      default: 20,
-      validator: (value: number) => value > 0
-    },
-    damping: {
-      type: Number,
-      default: 370,
-      validator: (value: number) => value > 0
-    },
-    enable: {
-      type: Boolean,
-      default: true
+    options: {
+      default: () => noWobble
     }
   },
   created() {
     this.initial();
-    this.initialOptions();
     this.watchLeadingStyle();
     this.watchInterpolatingStyles();
   },
-  watch: {
-    stiffness(newVal: number) {
-      this.options.stiffness = newVal;
-    },
-    damping(newVal: number) {
-      this.options.damping = newVal;
-    }
-  },
+  watch: {},
   methods: {
     initial() {
       this.interpolatingStyles = this.styles.map((s: StyleType) =>
         Object.assign({}, s)
       );
-    },
-    initialOptions() {
-      this.options.stiffness = this.stiffness;
-      this.options.damping = this.damping;
     },
     watchLeadingStyle() {
       // watch first style from props
