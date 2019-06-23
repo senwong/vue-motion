@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <!-- vue -->
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <!-- vue-motion -->
+  <script src="./vue-motion.js"></script>
+  <!-- lodash -->
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+
+  <title>Serial Balls</title>
+</head>
+
+<body>
+  <div class="app"></div>
+</body>
+<style>
+  body {
+    margin: 0;
+  }
+
+  html,
+  body,
+  #app {
+    width: 100%;
+    height: 100%;
+  }
+
+  .staggered-motion {
+    height: 100%;
+    width: 100%;
+    background-color: lightsteelblue;
+    position: relative
+  }
+
+  .staggered-motion__item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 60px;
+    width: 60px;
+    background-color: pink;
+    border-radius: 9999px;
+  }
+</style>
+<script>
+  Vue.use(VueMotion);
+  new Vue({
+    template: `
+      <div class="staggered-motion">
+        <StaggeredMotion :styles="staggeredStyles" :stiffness="Number(stiffness)" :damping="Number(damping)">
+            <template v-slot="{ styles }">
+              <div
+                class="staggered-motion__item"
+                v-for="(s, idx) in styles"
+                :key="idx"
+                :style="{
+                  transform: 'translate(' + s.x + 'px, ' + s.y + 'px)',
+                }"
+              >
+              </div>
+            </template>
+        </StaggeredMotion>
+      </div>
+    `,
+    data() {
+      return {
+        stiffness: 46,
+        damping: 370,
+        staggeredStyles: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
+      }
+    },
+    created() {
+      document.body.addEventListener('mousemove', this.handleMousemove)
+    },
+    beforeDestroy() {
+      document.body.removeEventListener('mousemove', this.handleMousemove)
+    },
+    methods: {
+      handleMousemove(e) {
+        this.staggeredStyles[0].x = e.clientX - 30;
+        this.staggeredStyles[0].y = e.clientY - 30;
+      },
+    },
+  }).$mount(".app");
+</script>
+
+</html>
