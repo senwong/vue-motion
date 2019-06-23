@@ -5,141 +5,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <!-- vue -->
-  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-  <!-- vue-motion -->
-  <script src="./vue-motion.js"></script>
-
-  <title>Document</title>
+  <title>VueMotion</title>
 </head>
 
 <body>
   <div class="app"></div>
+  <h1>Examples</h1>
+  <ol>
+    <li>
+      <a href="./simple-movement.html">simple movement</a>
+    </li>
+    <li>
+      <a href="./serial-balls.html">serial balls</a>
+    </li>
+  </ol>
 </body>
 <style>
-  .container {
-    height: 100px;
-    width: 600px;
-    background-color: lightsteelblue;
-    border-radius: 0.5em;
-    position: relative
-  }
-
-  .box {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100px;
-    background-color: pink;
-    border-radius: 0.5em
-  }
-
-  .staggered-motion {
-    padding: 1em;
-    background-color: lightsteelblue;
-    border-radius: 0.5em;
-    position: relative
-  }
-
-  .staggered-motion__item {
-    height: 100px;
-    width: 100px;
-    background-color: pink;
-    border-radius: 0.5em
-  }
-
-  .staggered-motion__item:not(:first-child) {
-    margin-top: 1em;
+  #app {
+    font-size: 2em;
   }
 </style>
-<script>
-  Vue.use(VueMotion);
-  new Vue({
-    template: `
-      <div>
-        <div class="container">
-          <Motion :styles="styles" :stiffness="Number(stiffness)" :damping="Number(damping)">
-            <template v-slot="{ styles }">
-              <div
-                class="box a"
-                :style="{
-                  width: styles.width + 'px',
-                  transform: 'translateX(' + styles.x + 'px)',
-                }"
-              >
-              </div>
-            </template>
-          </Motion>
-        </div>
-        <button @click="handleClick" >toggle</button>
-        <button @click="() => enable=false" >stop</button>
-
-        <div class="staggered-motion">
-          <StaggeredMotion :styles="staggeredStyles" :stiffness="Number(stiffness)" :damping="Number(damping)" :enable="enable">
-              <template v-slot="{ styles }">
-                <div
-                  class="staggered-motion__item"
-                  v-for="(s, idx) in styles"
-                  :key="idx"
-                  :style="{
-                    transform: 'translateX(' + s.x + 'px)',
-                  }"
-                >
-                  {{idx}}
-                </div>
-              </template>
-          </StaggeredMotion>
-        </div>
-        <button @click="handleStaggeredMotion">staggered motion</button>
-        <section>
-          <p>config spring damper</p>
-          <label>
-            stiffness: {{ stiffness }}
-            <input type="range" v-model="stiffness" min="1" max="200"/>
-          </label><br>
-          <label>
-            damping: {{ damping }}
-            <input type="range" v-model="damping" min="1" max="400"/>
-          </label>
-          <p>
-            <a href="https://zh.wikipedia.org/wiki/%E9%98%BB%E5%B0%BC">阻尼比</a> {{ damping / (Math.sqrt(stiffness) * 2) }}
-          </p>
-        </section>
-      </div>
-    `,
-    data() {
-      return {
-        stiffness: 26,
-        damping: 370,
-        styles: {
-          x: 0
-        },
-        staggeredStyles: [
-          { x: 0 },
-          { x: 0 },
-          { x: 0 },
-        ],
-        enable: true,
-      }
-    },
-    methods: {
-      handleClick() {
-        if (this.styles.x == 500) {
-          this.styles.x = 0;
-        } else {
-          this.styles.x = 500
-        }
-      },
-      handleStaggeredMotion() {
-        if (this.staggeredStyles[0].x == 500) {
-          this.staggeredStyles[0].x = 0;
-        } else {
-          this.staggeredStyles[0].x = 500
-        }
-      }
-    },
-  }).$mount(".app");
-</script>
 
 </html>

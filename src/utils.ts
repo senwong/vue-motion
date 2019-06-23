@@ -1,4 +1,4 @@
-const msPerFrame = 1 / 60;
+const msPerFrame = 1000 / 60;
 const precision = 0.01;
 import { Options } from "./types";
 
@@ -16,7 +16,6 @@ export function oneFrameDistance(
   ) {
     console.error(`onFrameDistance(${fromValue}, ${toValue}, ${velocity})`);
   }
-  console.log({ stiffness: options.stiffness, damping: options.damping });
   const { stiffness, damping } = options;
 
   let x = -Math.abs(toValue - fromValue);
@@ -28,7 +27,7 @@ export function oneFrameDistance(
   let ret = toValue > fromValue ? toValue + x : toValue - x;
   ret = Math.round(ret * 1000) / 1000;
 
-  return { value: ret, velocity, acceleration };
+  return { value: ret, velocity };
 }
 
 export function createAnimate(
@@ -38,60 +37,53 @@ export function createAnimate(
 ) {
   let oldRafId: number;
   let currentValue = fromValue;
-
-  function animateTo(toValue: number) {
-    if (currentValue === toValue) {
+  let toValue = fromValue;
+  let velocity = 0; //
+  let accTime = 0,
+    lastTimestamp: number;
+  function step(timestamp: number) {
+    // animation end
+    if (Math.abs(toValue - currentValue) < precision) {
+      cb(toValue);
+      fromValue = toValue;
       return;
     }
+    // get time delta to last frame
+    let msFrame;
+    if (lastTimestamp) {
+      msFrame = timestamp - lastTimestamp;
+    } else {
+      // first invoke step function
+      msFrame = msPerFrame;
+    }
+    lastTimestamp = timestamp;
+
+    const frameCount = Math.floor((accTime + msFrame) / msPerFrame);
+    accTime += msFrame - frameCount * msPerFrame; // 剩余的时间
+
+    const { value: newValue, velocity: newVelocity } = oneFrameDistance(
+      currentValue,
+      toValue,
+      velocity,
+      options,
+      frameCount
+    );
+    currentValue = newValue;
+    velocity = newVelocity;
+
+    cb(currentValue);
+    oldRafId = window.requestAnimationFrame(timestamp => {
+      oldRafId = null;
+      step(timestamp);
+    });
+  }
+  function animateTo(toVal: number) {
+    toValue = toVal;
     // cancel old not finished animation
     if (oldRafId) {
-      window.cancelAnimationFrame(oldRafId);
+      return;
     }
-
-    let velocity = 0; //
-    let accTime = 0,
-      accFrameCount = 0;
-    let lastTime: number;
-    function step() {
-      // get time delta to last frame
-      const now = performance.now();
-      const msFrame = (now - lastTime) / 1000;
-      lastTime = now;
-
-      const frameCount = Math.floor((accTime + msFrame) / msPerFrame);
-      accFrameCount += frameCount;
-      accTime += msFrame - frameCount * msPerFrame; // 剩余的时间
-
-      const {
-        value: newValue,
-        velocity: newVelocity,
-        acceleration
-      } = oneFrameDistance(
-        currentValue,
-        toValue,
-        velocity,
-        options,
-        frameCount
-      );
-      currentValue = newValue;
-      velocity = newVelocity;
-
-      // check if animation end
-      if (
-        accFrameCount > 0 &&
-        Math.abs(acceleration) < precision &&
-        Math.abs(velocity) < precision
-      ) {
-        cb(toValue);
-        return;
-      }
-      cb(currentValue);
-      oldRafId = window.requestAnimationFrame(() => {
-        step();
-      });
-    }
-    lastTime = performance.now();
-    step();
+    oldRafId = window.requestAnimationFrame(step);
   }
   return animateTo;
 }

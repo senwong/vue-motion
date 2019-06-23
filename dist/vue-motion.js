@@ -4,7 +4,7 @@
   (global = global || self, global.VueMotion = factory());
 }(this, function () { 'use strict';
 
-  var msPerFrame = 1 / 60;
+  var msPerFrame = 1000 / 60;
   var precision = 0.01;
   function oneFrameDistance(fromValue, toValue, velocity, options, frameCount) {
       if (frameCount === void 0) { frameCount = 1; }
@@ -13,7 +13,6 @@
           Number.isNaN(velocity)) {
           console.error("onFrameDistance(" + fromValue + ", " + toValue + ", " + velocity + ")");
       }
-      console.log({ stiffness: options.stiffness, damping: options.damping });
       var stiffness = options.stiffness, damping = options.damping;
       var x = -Math.abs(toValue - fromValue);
       var forceDamper = -damping * velocity;
@@ -23,44 +22,45 @@
       x += velocity;
       var ret = toValue > fromValue ? toValue + x : toValue - x;
       ret = Math.round(ret * 1000) / 1000;
-      return { value: ret, velocity: velocity, acceleration: acceleration };
+      return { value: ret, velocity: velocity };
   }
   function createAnimate(fromValue, cb, options) {
       var oldRafId;
       var currentValue = fromValue;
-      function animateTo(toValue) {
-          if (currentValue === toValue) {
+      var toValue = fromValue;
+      var velocity = 0;
+      var accTime = 0, lastTimestamp;
+      function step(timestamp) {
+          if (Math.abs(toValue - currentValue) < precision) {
+              cb(toValue);
+              fromValue = toValue;
               return;
           }
+          var msFrame;
+          if (lastTimestamp) {
+              msFrame = timestamp - lastTimestamp;
+          }
+          else {
+              msFrame = msPerFrame;
+          }
+          lastTimestamp = timestamp;
+          var frameCount = Math.floor((accTime + msFrame) / msPerFrame);
+          accTime += msFrame - frameCount * msPerFrame;
+          var _a = oneFrameDistance(currentValue, toValue, velocity, options, frameCount), newValue = _a.value, newVelocity = _a.velocity;
+          currentValue = newValue;
+          velocity = newVelocity;
+          cb(currentValue);
+          oldRafId = window.requestAnimationFrame(function (timestamp) {
+              oldRafId = null;
+              step(timestamp);
+          });
+      }
+      function animateTo(toVal) {
+          toValue = toVal;
           if (oldRafId) {
-              window.cancelAnimationFrame(oldRafId);
+              return;
           }
-          var velocity = 0;
-          var accTime = 0, accFrameCount = 0;
-          var lastTime;
-          function step() {
-              var now = performance.now();
-              var msFrame = (now - lastTime) / 1000;
-              lastTime = now;
-              var frameCount = Math.floor((accTime + msFrame) / msPerFrame);
-              accFrameCount += frameCount;
-              accTime += msFrame - frameCount * msPerFrame;
-              var _a = oneFrameDistance(currentValue, toValue, velocity, options, frameCount), newValue = _a.value, newVelocity = _a.velocity, acceleration = _a.acceleration;
-              currentValue = newValue;
-              velocity = newVelocity;
-              if (accFrameCount > 0 &&
-                  Math.abs(acceleration) < precision &&
-                  Math.abs(velocity) < precision) {
-                  cb(toValue);
-                  return;
-              }
-              cb(currentValue);
-              oldRafId = window.requestAnimationFrame(function () {
-                  step();
-              });
-          }
-          lastTime = performance.now();
-          step();
+          oldRafId = window.requestAnimationFrame(step);
       }
       return animateTo;
   }
