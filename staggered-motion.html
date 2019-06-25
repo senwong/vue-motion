@@ -17,22 +17,22 @@
   <div class="app"></div>
 </body>
 <style>
-  .container {
-    height: 100px;
-    width: 600px;
+  .staggered-motion {
+    padding: 1em;
     background-color: lightsteelblue;
     border-radius: 0.5em;
     position: relative
   }
 
-  .box {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100px;
+  .staggered-motion__item {
+    height: 50px;
+    width: 50px;
     background-color: pink;
     border-radius: 0.5em
+  }
+
+  .staggered-motion__item:not(:first-child) {
+    margin-top: 1em;
   }
 </style>
 <script>
@@ -40,22 +40,24 @@
   new Vue({
     template: `
       <div>
-        <h1>Toggle move element</h1>
-        <div class="container">
-          <Motion :styles="styles" :options="options">
-            <template v-slot="{ styles }">
-              <div
-                class="box a"
-                :style="{
-                  width: styles.width + 'px',
-                  transform: 'translateX(' + styles.x + 'px)',
-                }"
-              >
-              </div>
-            </template>
-          </Motion>
+        <h1>StaggeredMotion</h1>
+        <div class="staggered-motion">
+          <StaggeredMotion :styles="staggeredStyles" >
+              <template v-slot="{ styles }">
+                <div
+                  class="staggered-motion__item"
+                  v-for="(s, idx) in styles"
+                  :key="idx"
+                  :style="{
+                    transform: 'translateX(' + s.x + 'px)',
+                  }"
+                >
+                  {{idx}}
+                </div>
+              </template>
+          </StaggeredMotion>
         </div>
-        <button @click="handleClick" >toggle</button>
+        <button @click="handleStaggeredMotion">staggered motion</button>
         <section>
           <p>config spring damper</p>
           <label>
@@ -83,19 +85,23 @@
           damping: 25,
           mass: 1,
         },
-        styles: {
-          x: 0
-        },
+        staggeredStyles: [
+          { x: 0 },
+          { x: 0 },
+          { x: 0 },
+          { x: 0 },
+          { x: 0 },
+        ],
       }
     },
     methods: {
-      handleClick() {
-        if (this.styles.x == 500) {
-          this.styles.x = 0;
+      handleStaggeredMotion() {
+        if (this.staggeredStyles[0].x == 800) {
+          this.staggeredStyles[0].x = 0;
         } else {
-          this.styles.x = 500
+          this.staggeredStyles[0].x = 800
         }
-      },
+      }
     },
   }).$mount(".app");
 </script>
