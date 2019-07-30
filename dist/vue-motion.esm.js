@@ -2,10 +2,10 @@ function intanceofOptions(object) {
     return "stiffness" in object && "damping" in object && "mass" in object;
 }
 
-var noWobble = { stiffness: 10, damping: 40, mass: 1 };
-var gentle = { stiffness: 7, damping: 20, mass: 1 };
-var wobbly = { stiffness: 5, damping: 13, mass: 1 };
-var stiff = { stiffness: 5, damping: 30, mass: 1 };
+var noWobble = { stiffness: 5, damping: 6, mass: 1 };
+var gentle = { stiffness: 5, damping: 7, mass: 1 };
+var wobbly = { stiffness: 5, damping: 4, mass: 1 };
+var stiff = { stiffness: 5, damping: 5, mass: 1 };
 var presets = {
     noWobble: noWobble,
     gentle: gentle,
@@ -24,7 +24,8 @@ function oneFrameDistance(fromValue, toValue, velocity, options, frameCount) {
     }
     var stiffness = options.stiffness, damping = options.damping, mass = options.mass;
     var x = -(toValue - fromValue);
-    var forceDamper = -damping * velocity;
+    var dampingCofficient = damping * 2 * mass * Math.sqrt(stiffness * mass);
+    var forceDamper = -dampingCofficient * velocity;
     var forceSpring = -stiffness * x;
     var acceleration = (forceSpring + forceDamper) / mass;
     velocity += acceleration * ((frameCount * msPerFrame) / 1000);

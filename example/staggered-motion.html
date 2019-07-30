@@ -10,7 +10,7 @@
   <!-- vue-motion -->
   <script src="./vue-motion.js"></script>
 
-  <title>Simple Movement</title>
+  <title>Staggered Motion</title>
 </head>
 
 <body>
@@ -42,7 +42,7 @@
       <div>
         <h1>StaggeredMotion</h1>
         <div class="staggered-motion">
-          <StaggeredMotion :styles="staggeredStyles" >
+          <StaggeredMotion :styles="staggeredStyles" :options="options">
               <template v-slot="{ styles }">
                 <div
                   class="staggered-motion__item"
@@ -73,7 +73,7 @@
             <input type="range" :value="options.mass" @input="e => options.mass = Number(e.target.value)" min="0" max="100" style="display: block; width: 100%"/>
           </label>
           <p>
-            <a href="https://zh.wikipedia.org/wiki/%E9%98%BB%E5%B0%BC">阻尼比</a> {{ options.damping / (Math.sqrt(options.stiffness) * 2) }}
+            <a href="https://zh.wikipedia.org/wiki/%E9%98%BB%E5%B0%BC">阻尼比</a> {{ options.damping }}
           </p>
         </section>
       </div>
@@ -82,7 +82,7 @@
       return {
         options: {
           stiffness: 5,
-          damping: 25,
+          damping: 4,
           mass: 1,
         },
         staggeredStyles: [

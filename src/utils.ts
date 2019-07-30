@@ -22,8 +22,10 @@ export function oneFrameDistance(
   }
   const { stiffness, damping, mass } = options;
   // damping: x Newton * meter/second velocity: x meter/second
+  // m * a + c * v + k * x = 0;
   let x = -(toValue - fromValue); // meter
-  const forceDamper = -damping * velocity; // N move right v > 0; move left v < 0. damping = 2 * Math.sqrt(stifness)
+  const dampingCofficient = damping * 2 * mass * Math.sqrt(stiffness * mass);
+  const forceDamper = -dampingCofficient * velocity; // N move right v > 0; move left v < 0.
   const forceSpring = -stiffness * x; // stiffness: N/m, x meter
   const acceleration = (forceSpring + forceDamper) / mass; // m/s^2
 
