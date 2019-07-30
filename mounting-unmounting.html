@@ -30,7 +30,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    width: 100px;
+    width: 500px;
     background-color: pink;
     border-radius: 0.5em
   }
@@ -42,7 +42,7 @@
       <div>
         <h1>Toggle move element</h1>
         <div class="container">
-          <Motion :styles="styles" :options="options">
+          <Motion :styles="styles" :options="options" v-if="show">
             <template v-slot="{ styles }">
               <div
                 class="box a"
@@ -60,18 +60,18 @@
           <p>config spring damper</p>
           <label>
             stiffness: {{ options.stiffness }}
-            <input type="range" :value="options.stiffness" @input="e => options.stiffness = Number(e.target.value)"  min="0" max="10" style="display: block; width: 100%" />
+            <input type="range" :value="options.stiffness" @input="e => options.stiffness = Number(e.target.value)"  min="0" max="100" style="display: block; width: 100%" />
           </label><br>
           <label>
             damping: {{ options.damping }}
-            <input type="range" :value="options.damping" @input="e => options.damping = Number(e.target.value)" min="0" max="10" step="0.5" style="display: block; width: 100%"/>
+            <input type="range" :value="options.damping" @input="e => options.damping = Number(e.target.value)" min="0" max="100" style="display: block; width: 100%"/>
           </label>
           <label>
             mass: {{ options.mass }}
-            <input type="range" :value="options.mass" @input="e => options.mass = Number(e.target.value)" min="0" max="5" step="0.5" style="display: block; width: 100%"/>
+            <input type="range" :value="options.mass" @input="e => options.mass = Number(e.target.value)" min="0" max="100" style="display: block; width: 100%"/>
           </label>
           <p>
-            <a href="https://zh.wikipedia.org/wiki/%E9%98%BB%E5%B0%BC">阻尼比</a> {{ options.damping }}
+            <a href="https://zh.wikipedia.org/wiki/%E9%98%BB%E5%B0%BC">阻尼比</a> {{ options.damping / (Math.sqrt(options.stiffness) * 2) }}
           </p>
         </section>
       </div>
@@ -80,21 +80,24 @@
       return {
         options: {
           stiffness: 5,
-          damping: 5,
+          damping: 25,
           mass: 1,
         },
         styles: {
-          x: 0
+          x: -500
         },
+        show: true,
       }
+    },
+    mounted() {
+      this.styles.x = 0;
+    },
+    beforeDestroy() {
+      this.styles.x = -500;
     },
     methods: {
       handleClick() {
-        if (this.styles.x == 500) {
-          this.styles.x = 0;
-        } else {
-          this.styles.x = 500
-        }
+        this.show = !this.show;
       },
     },
   }).$mount(".app");
